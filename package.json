@@ -1,0 +1,17 @@
+{
+  "name": "nodegpt",
+  "version": "1.0.0",
+  "description": "OpenAI GPT API hooks",
+  "main": "app.js",
+  "author": "Wei-Ming, Hsin",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@line/bot-sdk": "^7.5.2",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "openai": "^3.2.1",
+    "pino": "^8.11.0",
+    "pino-pretty": "^9.4.0"
+  }
+}
