@@ -143,9 +143,9 @@ http.createServer(app).listen(httpPort, host, () => logger.info(`listening on ht
 
 if (process.env.HTTPS_KEY_NAME && process.env.HTTPS_CERT_NAME && process.env.HTTPS_CA_NAME) {
   var options = {
-    key: fs.readFileSync(`./cert/${process.env.https_key_name}`),
-    cert: fs.readFileSync(`./cert/${process.env.https_cert_name}`),
-    ca: fs.readFileSync(`./cert/${process.env.https_ca_name}`)
+    key: fs.readFileSync(`./cert/${process.env.HTTPS_KEY_NAME}`),
+    cert: fs.readFileSync(`./cert/${process.env.HTTPS_CERT_NAME}`),
+    ca: fs.readFileSync(`./cert/${process.env.HTTPS_CA_NAME}`)
   };
   
   const httpsPort = process.env.HTTPSPORT || 5800;
