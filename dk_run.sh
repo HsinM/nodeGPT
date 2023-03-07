@@ -5,4 +5,5 @@ docker run -d \
 --restart always \
 -v $(pwd)/.env:/app/.env \
 -v $(pwd)/cert/:/app/cert/ \
+-v $(pwd)/logs/:/app/logs/ \
 --name node-gpt hsin/node-gpt
