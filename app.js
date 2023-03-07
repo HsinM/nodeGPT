@@ -1,3 +1,4 @@
+'use strict';
 
 import * as dotenv from 'dotenv';
 import { Configuration, OpenAIApi } from 'openai';
@@ -26,7 +27,7 @@ const logStreams = [
   },
   {
     stream: pino.destination({
-      dest: `log/app-${dateString}.log`,
+      dest: `logs/app-${dateString}.log`,
       mkdir: true,
       append: true,
       sync: true
@@ -35,16 +36,6 @@ const logStreams = [
 ];
 
 const logger = pino({ level: 'debug' }, pino.multistream(logStreams));
-
-// LINE Bot
-// create LINE SDK config from env variables
-const lineBOTConfig = {
-  channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
-  channelSecret: process.env.CHANNEL_SECRET,
-};
-
-// create LINE SDK client
-const client = new line.Client(lineBOTConfig);
 
 // create Express app
 // about Express itself: https://expressjs.com/
@@ -56,31 +47,43 @@ app.get('/call', verifyKey, async (req, res) => {
   res.send('Response send to client::' + completionData.choices[0].message.content.trim());
 });
 
-// register a webhook handler with middleware
-// about the middleware, please refer to doc
-app.post('/callback', line.middleware(lineBOTConfig), (req, res) => {
-  Promise
-    .all(req.body.events.map(handleEvent))
-    .then((result) => res.json(result))
-    .catch((err) => {
-      logger.error(err);
-      res.status(500).end();
-    });
-});
+// LINE Bot
+if (process.env.CHANNEL_ACCESS_TOKEN && process.env.CHANNEL_SECRET) {
+  // create LINE SDK config from env variables
+  const lineBOTConfig = {
+    channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
+    channelSecret: process.env.CHANNEL_SECRET,
+  };
 
-// event handler
-async function handleEvent(event) {
-  if (event.type !== 'message' || event.message.type !== 'text') {
-    // ignore non-text-message event
-    return Promise.resolve(null);
+  // create LINE SDK client
+  const client = new line.Client(lineBOTConfig);
+
+  // register a webhook handler with middleware
+  // about the middleware, please refer to doc
+  app.post('/callback', line.middleware(lineBOTConfig), (req, res) => {
+    Promise
+      .all(req.body.events.map(handleEvent))
+      .then((result) => res.json(result))
+      .catch((err) => {
+        logger.error(err);
+        res.status(500).end();
+      });
+  });
+
+  // event handler
+  async function handleEvent(event) {
+    if (event.type !== 'message' || event.message.type !== 'text') {
+      // ignore non-text-message event
+      return Promise.resolve(null);
+    }
+
+    // create a echoing text message
+    const completionData = await createLanguageModelCompletion(event.message.text);
+    const echo = { type: 'text', text: completionData.choices[0].message.content.trim() };
+
+    // use reply API
+    return client.replyMessage(event.replyToken, echo);
   }
-
-  // create a echoing text message
-  const completionData = await createLanguageModelCompletion(event.message.text);
-  const echo = { type: 'text', text: completionData.choices[0].message.content.trim() };
-
-  // use reply API
-  return client.replyMessage(event.replyToken, echo);
 }
 
 // verfiy key
