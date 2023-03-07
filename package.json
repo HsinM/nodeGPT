@@ -4,7 +4,7 @@
   "description": "OpenAI GPT API hooks",
   "main": "app.js",
   "author": "Wei-Ming, Hsin",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "dependencies": {
     "@line/bot-sdk": "^7.5.2",
