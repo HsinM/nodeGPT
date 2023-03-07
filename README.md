@@ -6,7 +6,7 @@
 ### Usage
 
 1. run `yarn install`
-2. enter keys to .env file (if not exist, create it first)
+2. enter keys to .env file (if not exist, create it first and refer .env.sample to setup)
 3. run `node app.js`
 4. enjoy~
 

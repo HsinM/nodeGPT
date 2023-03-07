@@ -3,6 +3,9 @@ import * as dotenv from 'dotenv';
 import { Configuration, OpenAIApi } from 'openai';
 import line from'@line/bot-sdk';
 import express from 'express';
+import fs from 'fs';
+import http from 'http';
+import https from 'https';
 import pino from 'pino';
 import pretty from 'pino-pretty';
 
@@ -11,8 +14,8 @@ dotenv.config();
 
 // Logger
 const dt = new Date();
-String(dt.getYear() + 1900).padStart(4, '0');
-const dateString = `${String(dt.getYear() + 1900).padStart(4, '0')}${String(dt.getMonth() + 1).padStart(2, '0')}${String(dt.getDate() + 1).padStart(2, '0')}`;
+
+const dateString = `${String(dt.getYear() + 1900).padStart(4, '0')}${String(dt.getMonth() + 1).padStart(2, '0')}${String(dt.getDate()).padStart(2, '0')}`;
 const logStreams = [
   {
     stream: pretty({
@@ -120,6 +123,8 @@ async function createLanguageModelCompletion(userInputText) {
     messages: [
       { role: 'user', content: userInputText }
     ]
+  }).catch((err) => {
+    logger.error(err);
   });
 
   logger.info(completion.data);
@@ -127,8 +132,19 @@ async function createLanguageModelCompletion(userInputText) {
   return completion.data;
 }
 
-// listen on port
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  logger.info(`listening on port ${port}`);
-});
+// listen
+const host = process.env.HOST || '0.0.0.0';
+const httpPort = process.env.HTTPPORT || 3000;
+
+http.createServer(app).listen(httpPort, host, () => logger.info(`listening on http port ${httpPort}`));
+
+if (process.env.HTTPS_KEY_NAME && process.env.HTTPS_CERT_NAME && process.env.HTTPS_CA_NAME) {
+  var options = {
+    key: fs.readFileSync(`./cert/${process.env.https_key_name}`),
+    cert: fs.readFileSync(`./cert/${process.env.https_cert_name}`),
+    ca: fs.readFileSync(`./cert/${process.env.https_ca_name}`)
+  };
+  
+  const httpsPort = process.env.HTTPSPORT || 5800;
+  https.createServer(options, app).listen(httpsPort, host, () => logger.info(`listening on https port ${httpsPort}`));
+}
