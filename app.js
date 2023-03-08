@@ -43,8 +43,14 @@ const app = express();
 
 // pure get to call language model
 app.get('/call', verifyKey, async (req, res) => {
-  const completionData = await createLanguageModelCompletion(req.query.message);
-  res.send('Response send to client::' + completionData.choices[0].message.content.trim());
+  createLanguageModelCompletion(req.query.message)
+  .then((completionData) => {
+    res.end(completionData.choices[0].message.content.trim());
+  })
+  .catch((err) => {
+    res.status(500).end(`${err.message}, ${err.response.data.error.message}`);
+    logger.error(err);
+  });
 });
 
 // LINE Bot
@@ -62,7 +68,7 @@ if (process.env.CHANNEL_ACCESS_TOKEN && process.env.CHANNEL_SECRET) {
   // about the middleware, please refer to doc
   app.post('/callback', line.middleware(lineBOTConfig), (req, res) => {
     Promise
-      .all(req.body.events.map(handleEvent))
+      .all(req.body.events.map(handleLineEvent))
       .then((result) => res.json(result))
       .catch((err) => {
         logger.error(err);
@@ -71,15 +77,22 @@ if (process.env.CHANNEL_ACCESS_TOKEN && process.env.CHANNEL_SECRET) {
   });
 
   // event handler
-  async function handleEvent(event) {
+  async function handleLineEvent(event) {
     if (event.type !== 'message' || event.message.type !== 'text') {
       // ignore non-text-message event
       return Promise.resolve(null);
     }
 
     // create a echoing text message
-    const completionData = await createLanguageModelCompletion(event.message.text);
-    const echo = { type: 'text', text: completionData.choices[0].message.content.trim() };
+    let echo = {};
+    await createLanguageModelCompletion(event.message.text)
+    .then((completionData) => {
+      echo = { type: 'text', text: completionData.choices[0].message.content.trim() };
+    })
+    .catch((err) => {
+      echo = { type: 'text', text: `${err.message}, ${err.response.data.error.message}` };
+      logger.error(err);
+    });
 
     // use reply API
     return client.replyMessage(event.replyToken, echo);
@@ -126,8 +139,6 @@ async function createLanguageModelCompletion(userInputText) {
     messages: [
       { role: 'user', content: userInputText }
     ]
-  }).catch((err) => {
-    logger.error(err);
   });
 
   logger.info(completion.data);
